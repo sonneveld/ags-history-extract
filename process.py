@@ -12,11 +12,18 @@ import zipfile
 import pytz
 from contextlib import contextmanager
 
-OUT_DIR = "./extracted-repo"
+DEMO_REPO_DIR = "./extracted-demo"
+TEMPLATES_REPO_DIR = "./extracted-templates"
 DEMO_GAME_DIR = "DemoQuest"
+TEMPLATES_DIR = "Templates"
 TZ = pytz.timezone('Europe/London')
 
 VERSION_MAP = {
+    "AGS-3.3.4": "3.3.4",
+    "AGS-3.3.2": "3.3.2",
+    "AGS-3.3.0-hotfix2": "3.3.0-hotfix2",
+    "AGS-3.3.0": "3.3.0",
+    "AGS-3.2.1": "3.2.1",
     "AGS-3.2.0": "3.2.0",
     "AGS-3.1.2-SP1": "3.1.2-SP1",
     "AGS-3.1.2": "3.1.2",
@@ -24,13 +31,18 @@ VERSION_MAP = {
     "AGS-3.1.1": "3.1.1-pre",
     "AGS-3.1.0": "3.1.0",
     "AGS-3.0.2": "3.0.2",
+    "AGS-3.0.1": "3.0.1",
     "AGS-3.0.0": "3.0.0",
     "demo2turn11": "2.4.0",
     "ags_23": "2.3.0",
     "ags_22": "2.2.0",
     "ags_214_sr5": "2.1.4-SR5",
+    "ags_212": "2.1.2",
+    "ags_211": "2.1.1",
     "ags_210": "2.1.0",
     "ags_207": "2.0.7",
+    "ags_206": "2.0.6",
+    "ags_205": "2.0.5",
     "ags_204": "2.0.4",
     "ags_203": "2.0.3",
     "ags_202": "2.0.2",
@@ -84,11 +96,12 @@ def is_demo(path):
 #     exts = ".exe .dll .manifest .clb .hlp .ovl .dxe .xml".split()
 #     return os.path.splitext(path)[1].lower() in exts
 
-# def is_template(path):
-#     if 'template' in path:
-#         return True
-#     exts = ".agt .gui".split()
-#     return os.path.splitext(path)[1].lower() in exts
+def is_template(path):
+    # if 'template' in path.lower():
+        # return True
+    # exts = ".agt .gui".split()
+    exts = ".agt".split()
+    return os.path.splitext(path)[1].lower() in exts
 
 # def ftype(path):
 #     if is_demo(path):
@@ -107,11 +120,11 @@ def startswith_any(s, vals):
             return True
     return False
 
-def clean_dest_path(filepath):
+def clean_dest_path(filepath, is_dos_naming):
     dname,fname = os.path.split(filepath)
 
     dname_parts = [x.lower() for x in dname.split("/")]
-    bad_parts = ['ags', '{app}', '{commonappdata}', 'demo', 'demo game']
+    bad_parts = ['ags', '{app}', '{commonappdata}', 'demo', 'demo game', 'templates']
     while True:
         if len(dname_parts) <= 0:
             break
@@ -127,8 +140,12 @@ def clean_dest_path(filepath):
     dname_parts = [x.title() for x in dname_parts]
     dname = "/".join(dname_parts)
 
-
-    if startswith_any(fname.lower(), ("room", "game", "globalscript", "minigame", "music", "sound")):
+    if is_dos_naming:
+        fname = fname.upper()
+    elif fname.lower().endswith(".agt"):
+        root, ext = os.path.splitext(fname)
+        fname = root + ext.lower()
+    elif startswith_any(fname.lower(), ("room", "game", "globalscript", "minigame", "music", "sound")):
         root, ext = os.path.splitext(fname)
         fname = root.title() + ext.lower()
         fname = fname.replace("Globalscript", "GlobalScript")
@@ -141,12 +158,12 @@ def clean_dest_path(filepath):
     return destpath
 
 
-def copy_file(tmpdir, filepath, destdir):
+def copy_file(tmpdir, filepath, destdir, is_dos_naming=False):
     cpysrc = os.path.join(tmpdir, filepath)
     if not os.path.isfile(cpysrc):
         raise Exception("%s is not a file"%cpysrc)
     
-    destpath = os.path.join(destdir, clean_dest_path(filepath))
+    destpath = os.path.join(destdir, clean_dest_path(filepath, is_dos_naming))
     mkdir_p(os.path.dirname(destpath))
 
     print "copy ", filepath, "to", destpath
@@ -188,29 +205,48 @@ def process_zip(zippath):
     print
     print "Processing %s"%zippath
 
-    game_out_dir = os.path.join(OUT_DIR, DEMO_GAME_DIR)
+    root, _ = os.path.splitext(os.path.basename(zippath))
+    is_dos_naming = root.startswith("ac_1") or root.startswith("ags_2")
+
+    game_out_dir = os.path.join(DEMO_REPO_DIR, DEMO_GAME_DIR)
     if os.path.isdir(game_out_dir):
         clear_dir(game_out_dir)
 
+    templates_dir = os.path.join(TEMPLATES_REPO_DIR, TEMPLATES_DIR)
+    if os.path.isdir(templates_dir):
+        clear_dir(templates_dir)
+
     tmpdir = tempfile.mkdtemp(suffix="-ags")
 
-    last = start_of_time()
+    demo_last = start_of_time()
+    templates_last = start_of_time()
 
     with zipfile.ZipFile(zippath, 'r') as myzip:
         myzip.extractall(tmpdir)
         # sort by depth so DEMO dir files overrides any files in base.
         for entry in sorted(myzip.infolist(), key=lambda x: path_depth(x.filename)):
-            if os.path.isfile(os.path.join(tmpdir, entry.filename)) and is_demo(entry.filename):
-                last = max(last, convert_dt(entry.date_time))
-                copy_file(tmpdir, entry.filename, game_out_dir)
+            if os.path.isfile(os.path.join(tmpdir, entry.filename)):
+                if is_demo(entry.filename):
+                    demo_last = max(demo_last, convert_dt(entry.date_time))
+                    copy_file(tmpdir, entry.filename, game_out_dir, is_dos_naming)
+                if is_template(entry.filename):
+                    templates_last = max(templates_last, convert_dt(entry.date_time))
+                    copy_file(tmpdir, entry.filename, templates_dir)
 
     shutil.rmtree(tmpdir)
 
-    add_all(OUT_DIR)
-    if dir_has_changed(OUT_DIR):
-        root, _ = os.path.splitext(os.path.basename(zippath))
-        msg = "Demo Quest for Adventure Game Studio v%s" % VERSION_MAP[root]
-        commit(OUT_DIR, msg, last)
+    add_all(DEMO_REPO_DIR)
+    if dir_has_changed(DEMO_REPO_DIR):
+        ver = VERSION_MAP[root]
+        msg = "Demo Quest for Adventure Game Studio v%s" % ver
+        commit(DEMO_REPO_DIR, msg, demo_last)
+
+    add_all(TEMPLATES_REPO_DIR)
+    if dir_has_changed(TEMPLATES_REPO_DIR):
+        ver = VERSION_MAP[root]
+        msg = "Templates for Adventure Game Studio v%s" % ver
+        commit(TEMPLATES_REPO_DIR, msg, demo_last)
+
 
 # must be zip AND have room data.
 def is_viable_archive(path):
@@ -245,20 +281,23 @@ def find_files_in_dir(path):
         # raise Exception("files with same name but different content!")
     return name_to_path
 
-def initialise_out(path):
+def initialise_out(path, readmepath):
     if os.path.isdir(path):
         raise Exception("out dir already exists!")
     mkdir_p(path)
     subprocess.check_call('''git init "%s"'''%path, shell=True)
-    shutil.copy2("GAME_README.md", os.path.join(path, "README.md"))
+    subprocess.check_call('''git config core.ignorecase false''', shell=True)
+    shutil.copy2(readmepath, os.path.join(path, "README.md"))
     add_all(path)
     commit(path, "Initial commit")
+
 
 def main():
     order = load_order_file("./order.txt")
     name_to_path = find_files_in_dir("./data")
 
-    initialise_out(OUT_DIR)
+    initialise_out(DEMO_REPO_DIR, "GAME_README.md")
+    initialise_out(TEMPLATES_REPO_DIR, "TEMPLATES_README.md")
 
     for x in order:
         if x in name_to_path and is_viable_archive(name_to_path[x]):            

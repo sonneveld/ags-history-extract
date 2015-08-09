@@ -5,6 +5,9 @@ history in a git repository.
 
 ## Use
 
+Note: If you're running under OSX, you may need to run under a case-sensitive file system to properly track filename
+case changes between DOS and Windows.
+
  * Place zip files into data/
  * Edit order.txt to determine order to load zip files.
  * Run ./process.py
