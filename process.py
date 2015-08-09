@@ -26,13 +26,24 @@ VERSION_MAP = {
     "AGS-3.2.1": "3.2.1",
     "AGS-3.2.0": "3.2.0",
     "AGS-3.1.2-SP1": "3.1.2-SP1",
+    "ags_312sp1": "3.1.2-SP1",
+    "ags312rc1": "3.1.2-RC1",
     "AGS-3.1.2": "3.1.2",
     "AGS-3.1.1-Final": "3.1.1",
     "AGS-3.1.1": "3.1.1-pre",
     "AGS-3.1.0": "3.1.0",
+    "AGS-3.1": "3.1.0",
     "AGS-3.0.2": "3.0.2",
     "AGS-3.0.1": "3.0.1",
     "AGS-3.0.0": "3.0.0",
+    "AGS-2.72": "2.7.2",
+    "ags_272": "2.7.2",
+    "ags_271": "2.7.1",
+    "ags_27": "2.7.0",
+    "ags_261": "2.6.1",
+    "ags_256d": "2.5.6d",
+    "ags255beta2": "2.5.5-beta2",
+    "ags255beta1": "2.5.5-beta1",
     "demo2turn11": "2.4.0",
     "ags_23": "2.3.0",
     "ags_22": "2.2.0",
@@ -207,6 +218,7 @@ def process_zip(zippath):
 
     root, _ = os.path.splitext(os.path.basename(zippath))
     is_dos_naming = root.startswith("ac_1") or root.startswith("ags_2")
+    update_demo = False  #only update if rooms were copied.
 
     game_out_dir = os.path.join(DEMO_REPO_DIR, DEMO_GAME_DIR)
     if os.path.isdir(game_out_dir):
@@ -227,6 +239,9 @@ def process_zip(zippath):
         for entry in sorted(myzip.infolist(), key=lambda x: path_depth(x.filename)):
             if os.path.isfile(os.path.join(tmpdir, entry.filename)):
                 if is_demo(entry.filename):
+                    _, entryext = os.path.splitext(entry.filename)
+                    if entryext.lower() in (".crm", ".asc"):
+                        update_demo = True
                     demo_last = max(demo_last, convert_dt(entry.date_time))
                     copy_file(tmpdir, entry.filename, game_out_dir, is_dos_naming)
                 if is_template(entry.filename):
@@ -235,17 +250,18 @@ def process_zip(zippath):
 
     shutil.rmtree(tmpdir)
 
-    add_all(DEMO_REPO_DIR)
-    if dir_has_changed(DEMO_REPO_DIR):
-        ver = VERSION_MAP[root]
-        msg = "Demo Quest for Adventure Game Studio v%s" % ver
-        commit(DEMO_REPO_DIR, msg, demo_last)
+    if update_demo:
+        add_all(DEMO_REPO_DIR)
+        if dir_has_changed(DEMO_REPO_DIR):
+            ver = VERSION_MAP[root]
+            msg = "Demo Quest for Adventure Game Studio v%s" % ver
+            commit(DEMO_REPO_DIR, msg, demo_last)
 
     add_all(TEMPLATES_REPO_DIR)
     if dir_has_changed(TEMPLATES_REPO_DIR):
         ver = VERSION_MAP[root]
         msg = "Templates for Adventure Game Studio v%s" % ver
-        commit(TEMPLATES_REPO_DIR, msg, demo_last)
+        commit(TEMPLATES_REPO_DIR, msg, templates_last)
 
 
 # must be zip AND have room data.
@@ -256,7 +272,7 @@ def is_viable_archive(path):
     with zipfile.ZipFile(path, 'r') as zf:
         for entry in zf.infolist():
             _, ext = os.path.splitext(entry.filename)
-            if ext.lower() in (".crm", ".asc"):
+            if ext.lower() in (".crm", ".asc", '.agt'):
                 return True;
     return False;
 
