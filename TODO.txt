@@ -2,9 +2,6 @@ TODO:
 include .exe files (need to unpack first)
 auto convert rar
 throw away order.txt, determine order through file dates.
-confirm case for everything
-  all caps for DOS files?
-add Templates in separate repository
 
 DONE:
 commit this build into a repository
@@ -13,3 +10,6 @@ add a readme
 put in versions of AGS  used
 trim files?
 put game into "Demo Game" directory
+confirm case for everything
+  all caps for DOS files?
+add Templates in separate repository

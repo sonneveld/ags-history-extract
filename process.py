@@ -204,9 +204,20 @@ def start_of_time():
 def commit(path, msg, date=None):
     if date == None:
         date = start_of_time()
+
+    author_name = "CJ"
+    author_email = "<>"
+    if date > convert_dt((2012,1,1)):
+        author_name = "Ivan Mogilko"
+        author_email = "ikm_spb@yahoo.com"
+
     with cd(path):
         last_ts = date.isoformat()
-        subprocess.check_call('''GIT_COMMITTER_NAME='CJ' GIT_COMMITTER_EMAIL='<>' GIT_AUTHOR_DATE='%s' GIT_COMMITTER_DATE='%s' git commit --author="CJ <>" -m "%s"'''%(last_ts, last_ts, msg), shell=True)
+        cmd = ('''GIT_COMMITTER_NAME='{name}' GIT_COMMITTER_EMAIL='{name}' ''' + \
+            '''GIT_AUTHOR_DATE='{email}' GIT_COMMITTER_DATE='{date}' ''' + \
+            '''git commit --author="{name} <{email}>" --date="{date}" -m "{msg}"''') \
+            .format(name=author_name, email=author_email, date=last_ts, msg=msg)
+        subprocess.check_call(cmd, shell=True)
 
 def convert_dt(dt):
     d = datetime.datetime(*dt)

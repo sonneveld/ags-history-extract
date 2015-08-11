@@ -123,12 +123,6 @@ AGS-3.3.0.zip
 AGS-3.3.0.zip
 AGS-3.3.0-noMP3.zip
 AGS-3.3.0-noMP3.zip
-AGS-3.3.0-hotfix2.exe
-AGS-3.3.0-hotfix2.zip
-AGS-3.3.0-hotfix2.zip
-AGS-3.3.0-hotfix2.zip
-AGS-3.3.0-hotfix2-noMP3.zip
-AGS-3.3.0-hotfix2-noMP3.zip
 
 AGS-3.3.2.exe
 AGS-3.3.2.zip
