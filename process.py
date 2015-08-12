@@ -206,15 +206,15 @@ def commit(path, msg, date=None):
         date = start_of_time()
 
     author_name = "CJ"
-    author_email = "<>"
+    author_email = ""
     if date > convert_dt((2012,1,1)):
         author_name = "Ivan Mogilko"
         author_email = "ikm_spb@yahoo.com"
 
     with cd(path):
         last_ts = date.isoformat()
-        cmd = ('''GIT_COMMITTER_NAME='{name}' GIT_COMMITTER_EMAIL='{name}' ''' + \
-            '''GIT_AUTHOR_DATE='{email}' GIT_COMMITTER_DATE='{date}' ''' + \
+        cmd = ('''GIT_COMMITTER_NAME='{name}' GIT_COMMITTER_EMAIL='<{email}>' GIT_COMMITTER_DATE='{date}' ''' + \
+            '''GIT_AUTHOR_NAME='{name}' GIT_AUTHOR_EMAIL='<{email}>' GIT_AUTHOR_DATE='{date}' ''' 
             '''git commit --author="{name} <{email}>" --date="{date}" -m "{msg}"''') \
             .format(name=author_name, email=author_email, date=last_ts, msg=msg)
         subprocess.check_call(cmd, shell=True)
